@@ -65,3 +65,22 @@ $RECYCLE.BIN/
 *.msm
 *.msp
 *.lnk
+
+# macOS specific
+.DS_Store
+.DS_Store?
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.DocumentRevisions-V100
+.Trashes
+*.lock
+*.out
+*.gdb
+
+# Linux specific
+.directory
+.nfs*
+
+
