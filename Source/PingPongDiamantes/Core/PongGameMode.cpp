@@ -1,5 +1,8 @@
 // Fill out your copyright notice in the Description page of Project Settings.
-
+//
+// Brief theory and notes:
+// - BeginPlay performs initial runtime setup: spawn paddles, set materials, possess player 1, configure input contexts and set camera.
+// - GameMode is the correct place to spawn game actors that represent players and to decide singleplayer vs local coop behavior.
 
 #include "PongGameMode.h"
 #include "../Paddle/PongPaddle.h"
@@ -16,6 +19,7 @@ void APongGameMode::BeginPlay()
 
 	if (!PaddleClass)
 	{
+		// No paddle class provided: nothing to spawn.
 		return;
 	}
 
@@ -26,6 +30,7 @@ void APongGameMode::BeginPlay()
 		return;
 	}
 
+	// Query game instance for mode (singleplayer/co-op).
 	UPongGameInstance* PongGameInstance = Cast<UPongGameInstance>(GetGameInstance());
 	bool bIsSinglePlayer = PongGameInstance ? PongGameInstance->bIsSinglePlayerMode : true;
 
@@ -33,33 +38,42 @@ void APongGameMode::BeginPlay()
 	FActorSpawnParameters SpawnParams;
 	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 
-	APongPaddle* PaddleP1 = World->SpawnActor<APongPaddle>(PaddleClass, Paddle1SpawnLocation, FRotator::ZeroRotator, SpawnParams);
-	APongPaddle* PaddleP2 = World->SpawnActor<APongPaddle>(PaddleClass, Paddle2SpawnLocation, FRotator::ZeroRotator, SpawnParams);
+	APongPaddle* PaddleP1 = World->SpawnActor<APongPaddle>(PaddleClass, Paddle1SpawnLocation, FRotator(0.0f, 90.0f, 0.0f), SpawnParams);
+	APongPaddle* PaddleP2 = World->SpawnActor<APongPaddle>(PaddleClass, Paddle2SpawnLocation, FRotator(0.0f, -90.0f, 0.0f), SpawnParams);
 
+	// Assign input mapping contexts and materials if available.
 	if (PaddleP1)
 	{
 		PaddleP1->InputMappingContext = Player1MappingContext;
+		if (PaddleMaterialP1)
+		{
+			PaddleP1->PaddleMesh->SetMaterial(0, PaddleMaterialP1);
+		}
 	}
 	if (PaddleP2)
 	{
 		PaddleP2->InputMappingContext = Player2MappingContext;
+		if (PaddleMaterialP2)
+		{
+			PaddleP2->PaddleMesh->SetMaterial(0, PaddleMaterialP2);
+		}
 	}
 
-	/*
-	* We assign InputMappingContext after spawning but before Possess. Remember: Possess is what triggers SetupPlayerInputComponent internally, 
-	and BeginPlay on the paddle (which is where we call AddMappingContext) runs at spawn time too. So we need InputMappingContext to already have 
-	the correct value before those events fire — otherwise BeginPlay's check if (InputMappingContext) would find it still nullptr 
-	(since it defaults to unset), and skip activating it entirely.
-	*/
-
+	// Get player controller 0 (local player)
 	APlayerController* PlayerController1 = UGameplayStatics::GetPlayerController(World, 0);
 
 	if (PlayerController1 && PaddleP1)
 	{
+		// Possess the first paddle with the player's controller so they can move it.
 		PlayerController1->Possess(PaddleP1);
 		PaddleP1->ActivateInput();
 	}
 
+	// Set input mode and cursor visibility
+	PlayerController1->SetInputMode(FInputModeGameOnly());
+	PlayerController1->bShowMouseCursor = false;
+
+	// Find camera actor by tag and set view target to it (keeps camera logic in the level).
 	TArray<AActor*> FoundCameras;
 	UGameplayStatics::GetAllActorsWithTag(World, FName("MainGameCamera"), FoundCameras);
 
@@ -75,11 +89,13 @@ void APongGameMode::BeginPlay()
 
 	if (bIsSinglePlayer)
 	{
-		// TODO: Spawn AI Paddle for Player 2
+		// TODO: spawn an AI paddle for player 2 in single-player mode.
 	}
 	else
 	{
-		// Coop local: mismo PlayerController escucha ambos Mapping Contexts
+		// Coop local: same PlayerController listens to both paddles, but we add a second mapping context
+		// so Player 2's controls can be mapped separately and then bind MoveAction_P2 to the second paddle.
+
 		if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PlayerController1->GetLocalPlayer()))
 		{
 			if (Player2MappingContext)
@@ -88,6 +104,7 @@ void APongGameMode::BeginPlay()
 			}
 		}
 
+		// Bind MoveAction_P2 to PaddleP2's Move() method on the PlayerController's input component.
 		if (UEnhancedInputComponent* EnhancedIC = Cast<UEnhancedInputComponent>(PlayerController1->InputComponent))
 		{
 			if (MoveAction_P2 && PaddleP2)
