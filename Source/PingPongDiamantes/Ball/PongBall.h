@@ -39,11 +39,14 @@ public:
 
 	// Delay before the ball is launched on BeginPlay (allows setup time).
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ball")
-	float LaunchDelay = 2.0f;
+	float LaunchDelay = 1.5f;
 
 	// Optional sound to play on bounce events.
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ball")
 	USoundBase* BounceSound;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ball")
+	float SoundCooldown = 0.1f;
 
 protected:
 	virtual void BeginPlay() override;
@@ -59,6 +62,12 @@ protected:
 private:
 	// Timer handle used to delay the initial launch.
 	FTimerHandle LaunchTimerHandle;
+
+	FTimerHandle SoundCooldownTimerHandle;
+	bool bCanPlaySound = true;
+
+	UFUNCTION()
+	void ResetSoundCooldown();
 
 public:
 	virtual void Tick(float DeltaTime) override;

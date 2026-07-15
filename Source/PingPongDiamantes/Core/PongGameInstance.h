@@ -22,5 +22,5 @@ class PINGPONGDIAMANTES_API UPongGameInstance : public UGameInstance
 public:
 	// When true, spawn AI for the second paddle; when false, expect local coop input for player 2.
 	UPROPERTY(BlueprintReadWrite, Category = "Pong")
-	bool bIsSinglePlayerMode = false;
+	bool bIsSinglePlayerMode = true;
 };

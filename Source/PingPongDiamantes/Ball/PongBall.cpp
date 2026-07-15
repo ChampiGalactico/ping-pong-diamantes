@@ -41,6 +41,11 @@ void APongBall::BeginPlay()
 	GetWorldTimerManager().SetTimer(LaunchTimerHandle, this, &APongBall::LaunchBall, LaunchDelay, false);
 }
 
+void APongBall::ResetSoundCooldown()
+{
+	bCanPlaySound = true;
+}
+
 void APongBall::LaunchBall()
 {
 	// Choose a random angle within a cone and a random horizontal direction (left or right).
@@ -77,9 +82,12 @@ void APongBall::OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPr
 	BallMesh->SetPhysicsLinearVelocity(Direction * NewSpeed);
 
 	// Play bounce sound if configured (2D playback so it's heard regardless of location).
-	if (BounceSound)
+	if (BounceSound && bCanPlaySound)
 	{
 		UGameplayStatics::PlaySound2D(GetWorld(), BounceSound);
+
+		bCanPlaySound = false;
+		GetWorldTimerManager().SetTimer(SoundCooldownTimerHandle, this, &APongBall::ResetSoundCooldown, SoundCooldown, false);
 	}
 }
 

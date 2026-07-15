@@ -12,6 +12,8 @@
 #include "PongGameMode.generated.h"
 
 class APongPaddle;
+class APongAIController;
+class APongBall;
 class UInputMappingContext;
 class UInputAction;
 class ACameraActor;
@@ -56,4 +58,22 @@ public:
 
 	UPROPERTY(EditAnywhere, Category = "Paddle")
 	UMaterialInterface* PaddleMaterialP2;
+
+	UPROPERTY(EditAnywhere, Category = "Pong")
+	TSubclassOf<APongBall> BallClass;
+
+	UPROPERTY(EditAnywhere, Category = "Pong")
+	FVector BallSpawnLocation = FVector(0.0f, 0.0f, 50.0f);
+
+	UPROPERTY(BlueprintReadOnly, Category = "Pong")
+	int32 Player1Score = 0;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Pong")
+	int32 Player2Score = 0;
+
+	void OnGoalScored(int32 ScoringPlayerIndex, APongBall* ScoredBall);
+
+private:
+	void SpawnBall();
+	APongAIController* CachedAIController;
 };

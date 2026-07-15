@@ -6,6 +6,8 @@
 
 #include "PongGameMode.h"
 #include "../Paddle/PongPaddle.h"
+#include "../Ball/PongBall.h"
+#include "AI/PongAIController.h"
 #include "PongGameInstance.h"
 #include "Kismet/GameplayStatics.h"
 #include "GameFramework/PlayerController.h"
@@ -89,7 +91,21 @@ void APongGameMode::BeginPlay()
 
 	if (bIsSinglePlayer)
 	{
-		// TODO: spawn an AI paddle for player 2 in single-player mode.
+		if (PaddleP2)
+		{
+			APongAIController* AIController = World->SpawnActor<APongAIController>();
+			if (AIController)
+			{
+				AIController->Possess(PaddleP2);
+				AIController->InitializeAI();
+				CachedAIController = AIController;
+				UE_LOG(LogTemp, Warning, TEXT("AIController spawned and possessing Paddle2"));
+			}
+			else
+			{
+				UE_LOG(LogTemp, Error, TEXT("Failed to spawn AIController"));
+			}
+		}
 	}
 	else
 	{
@@ -114,6 +130,53 @@ void APongGameMode::BeginPlay()
 			}
 		}
 	}
+
+	SpawnBall();
 }
 
+void APongGameMode::SpawnBall()
+{
+	if (!BallClass)
+	{
+		return;
+	}
 
+	UWorld* World = GetWorld();
+
+	if (!World)
+	{
+		return;
+	}
+
+	FActorSpawnParameters SpawnParams;
+	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+	APongBall* NewBall = World->SpawnActor<APongBall>(BallClass, BallSpawnLocation, FRotator::ZeroRotator);
+
+	if (CachedAIController && NewBall)
+	{
+		CachedAIController->SetTargetBall(NewBall);
+	}
+}
+
+void APongGameMode::OnGoalScored(int32 ScoringPlayerIndex, APongBall* ScoredBall)
+{
+	if (ScoringPlayerIndex == 1)
+	{
+		Player1Score++;
+	}
+	else
+	{
+		Player2Score++;
+	}
+
+	UE_LOG(LogTemp, Warning, TEXT("GOAL! Player1: %d - Player2: %d"), Player1Score, Player2Score);
+
+	if (ScoredBall)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Destroying ball: %s"), *ScoredBall->GetName());
+		ScoredBall->Destroy();
+	}
+
+	SpawnBall();
+}
